@@ -33,8 +33,14 @@ RCT_EXPORT_METHOD(initDocumentVerificationWithCustomization:(NSString *)apiToken
     [self initDocumentVerificationHelper:apiToken apiSecret:apiSecret dataCenter:dataCenter configuration:options customization:customization];
 }
 
+RCT_EXPORT_METHOD(destroyDocumentVerification) {
+  if (self.documentVerificationViewController) {
+    self.documentVerificationViewController = nil;
+  }
+}
+
 - (void)initDocumentVerificationHelper:(NSString *)apiToken apiSecret:(NSString *)apiSecret dataCenter:(NSString *)dataCenter configuration:(NSDictionary *)options customization:(NSDictionary *)customization {
-    
+
     // Initialization
     _documentVerifcationConfiguration = [DocumentVerificationConfiguration new];
     _documentVerifcationConfiguration.delegate = self;
@@ -42,7 +48,7 @@ RCT_EXPORT_METHOD(initDocumentVerificationWithCustomization:(NSString *)apiToken
     _documentVerifcationConfiguration.merchantApiSecret = apiSecret;
     NSString *dataCenterLowercase = [dataCenter lowercaseString];
     _documentVerifcationConfiguration.dataCenter = ([dataCenterLowercase isEqualToString: @"eu"]) ? JumioDataCenterEU : JumioDataCenterUS;
-    
+
     // Configuration
     if (![options isEqual:[NSNull null]]) {
         for (NSString *key in options) {
@@ -71,7 +77,7 @@ RCT_EXPORT_METHOD(initDocumentVerificationWithCustomization:(NSString *)apiToken
             }
         }
     }
-    
+
     // Customization
     if (![customization isEqual:[NSNull null]]) {
         for (NSString *key in customization) {
@@ -79,7 +85,7 @@ RCT_EXPORT_METHOD(initDocumentVerificationWithCustomization:(NSString *)apiToken
                 [[NetverifyBaseView netverifyAppearance] setDisableBlur: @YES];
             } else {
                 UIColor *color = [self colorWithHexString: [customization objectForKey: key]];
-                
+
                 if ([key isEqualToString: @"backgroundColor"]) {
                     [[NetverifyBaseView netverifyAppearance] setBackgroundColor: color];
                 } else if ([key isEqualToString: @"tintColor"]) {
@@ -106,7 +112,7 @@ RCT_EXPORT_METHOD(initDocumentVerificationWithCustomization:(NSString *)apiToken
             }
         }
     }
-    
+
     _documentVerificationViewController = [[DocumentVerificationViewController alloc]initWithConfiguration: _documentVerifcationConfiguration];
 }
 
@@ -115,7 +121,7 @@ RCT_EXPORT_METHOD(startDocumentVerification) {
         NSLog(@"The Document Verification SDK is not initialized yet. Call initDocumentVerification() first.");
         return;
     }
-    
+
     dispatch_sync(dispatch_get_main_queue(), ^{
         AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
         [delegate.window.rootViewController presentViewController: _documentVerificationViewController animated: YES completion: nil];

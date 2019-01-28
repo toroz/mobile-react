@@ -33,8 +33,14 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
     [self initBAMHelper:apiToken apiSecret:apiSecret dataCenter:dataCenter configuration:options customization:customization];
 }
 
+RCT_EXPORT_METHOD(destroyBAM) {
+  if (self.bamViewController) {
+    self.bamViewController = nil;
+  }
+}
+
 - (void)initBAMHelper:(NSString *)apiToken apiSecret:(NSString *)apiSecret dataCenter:(NSString *)dataCenter configuration:(NSDictionary *)options customization:(NSDictionary *)customization {
-    
+
     // Initialization
     _bamConfiguration = [BAMCheckoutConfiguration new];
     _bamConfiguration.delegate = self;
@@ -42,7 +48,7 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
     _bamConfiguration.merchantApiSecret = apiSecret;
     NSString *dataCenterLowercase = [dataCenter lowercaseString];
     _bamConfiguration.dataCenter = ([dataCenterLowercase isEqualToString: @"eu"]) ? JumioDataCenterEU : JumioDataCenterUS;
-  
+
     self.scanReferences = [[NSMutableArray alloc] init];
     // Configuration
     if (![options isEqual: [NSNull null]]) {
@@ -76,11 +82,11 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
             } else if ([key isEqualToString: @"cardTypes"]) {
                 NSMutableArray *jsonTypes = [options objectForKey: key];
                 BAMCheckoutCreditCardTypes cardTypes = 0;
-                
+
                 int i;
                 for (i = 0; i < [jsonTypes count]; i++) {
                     id type = [jsonTypes objectAtIndex: i];
-                    
+
                     if ([[type lowercaseString] isEqualToString: @"visa"]) {
                         cardTypes = cardTypes | BAMCheckoutCreditCardTypeVisa;
                     } else if ([[type lowercaseString] isEqualToString: @"master_card"]) {
@@ -97,12 +103,12 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
                         cardTypes = cardTypes | BAMCheckoutCreditCardTypeJCB;
                     }
                 }
-                
+
                 _bamConfiguration.supportedCreditCardTypes = cardTypes;
             }
         }
     }
-    
+
     // Customization
     if (![customization isEqual:[NSNull null]]) {
         for (NSString *key in customization) {
@@ -110,7 +116,7 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
                 [[BAMCheckoutBaseView bamCheckoutAppearance] setDisableBlur: @YES];
             } else {
                 UIColor *color = [self colorWithHexString: [customization objectForKey: key]];
-                
+
                 if ([key isEqualToString: @"backgroundColor"]) {
                     [[BAMCheckoutBaseView bamCheckoutAppearance] setBackgroundColor: color];
                 } else if ([key isEqualToString: @"tintColor"]) {
@@ -141,7 +147,7 @@ RCT_EXPORT_METHOD(initBAMWithCustomization:(NSString *)apiToken apiSecret:(NSStr
             }
         }
     }
-    
+
     _bamViewController = [[BAMCheckoutViewController alloc]initWithConfiguration: _bamConfiguration];
 }
 
@@ -150,7 +156,7 @@ RCT_EXPORT_METHOD(startBAM) {
         NSLog(@"The BAMCheckout SDK is not initialized yet. Call initBAM() first.");
         return;
     }
-    
+
     AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     dispatch_sync(dispatch_get_main_queue(), ^{
         [delegate.window.rootViewController presentViewController: _bamViewController animated: YES completion: nil];
@@ -161,7 +167,7 @@ RCT_EXPORT_METHOD(startBAM) {
 
 - (void)bamCheckoutViewController:(BAMCheckoutViewController *)controller didFinishScanWithCardInformation:(BAMCheckoutCardInformation *)cardInformation scanReference:(NSString *)scanReference {
     NSMutableDictionary *result = [[NSMutableDictionary alloc] init];
-    
+
     if (cardInformation.cardType == BAMCheckoutCreditCardTypeVisa) {
         [result setValue: @"VISA" forKey: @"cardType"];
     } else if (cardInformation.cardType == BAMCheckoutCreditCardTypeMasterCard) {
@@ -177,7 +183,7 @@ RCT_EXPORT_METHOD(startBAM) {
     } else if (cardInformation.cardType == BAMCheckoutCreditCardTypeJCB) {
         [result setValue: @"JCB" forKey: @"cardType"];
     }
-    
+
     [result setValue: [cardInformation.cardNumber copy] forKey: @"cardNumber"];
     [result setValue: [cardInformation.cardNumberGrouped copy] forKey: @"cardNumberGrouped"];
     [result setValue: [cardInformation.cardNumberMasked copy] forKey: @"cardNumberMasked"];
@@ -190,15 +196,15 @@ RCT_EXPORT_METHOD(startBAM) {
     [result setValue: [cardInformation.cardAccountNumber copy] forKey: @"cardAccountNumber"];
     [result setValue: [NSNumber numberWithBool: cardInformation.cardSortCodeValid] forKey: @"cardSortCodeValid"];
     [result setValue: [NSNumber numberWithBool: cardInformation.cardAccountNumberValid] forKey: @"cardAccountNumberValid"];
-  
+
     if (scanReference) {
       if (![self.scanReferences containsObject:scanReference]) {
         [self.scanReferences addObject:scanReference];
       }
     }
-	
+
     [result setValue: self.scanReferences forKey: @"scanReferences"];
-    
+
     AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     [delegate.window.rootViewController dismissViewControllerAnimated: YES completion: ^{
         [self sendEventWithName: @"EventCardInformation" body: result];
@@ -212,7 +218,7 @@ RCT_EXPORT_METHOD(startBAM) {
         [self.scanReferences addObject:scanReference];
       }
     }
-  
+
     [self sendError: error scanReference: self.scanReferences.copy];
     [self.scanReferences removeAllObjects];
 }
